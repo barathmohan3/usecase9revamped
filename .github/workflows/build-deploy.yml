@@ -1,4 +1,5 @@
 name: Build and Push to ECR
+
 on:
   push:
     paths:
@@ -17,7 +18,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Configure AWS credentials with OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -25,27 +25,24 @@ jobs:
           role-session-name: github-assume
           aws-region: us-east-1
 
-      - name: Login to Amazon ECR # login ecr
+      - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build Docker Image 
         run: |
-          docker build -t ${{ vars.ECR_REGISTRY }}/flask-app:${{ github.sha }} ./Api-Flask
-          docker tag ${{ vars.ECR_REGISTRY }}/flask-app:${{ github.sha }} ${{ vars.ECR_REGISTRY }}/flask-app:latest
+          docker build -t 650251701672.dkr.ecr.us-east-1.amazonaws.com/flask-app:${{ github.sha }} ./Api-Flask
+          docker tag 650251701672.dkr.ecr.us-east-1.amazonaws.com/flask-app:${{ github.sha }} 650251701672.dkr.ecr.us-east-1.amazonaws.com/flask-app:latest
 
       - name: Push Docker Image 
         run: |
-          docker push ${{ vars.ECR_REGISTRY }}/flask-app:${{ github.sha }}
-          docker push ${{ vars.ECR_REGISTRY }}/flask-app:latest
+          docker push 650251701672.dkr.ecr.us-east-1.amazonaws.com/flask-app:${{ github.sha }}
+          docker push 650251701672.dkr.ecr.us-east-1.amazonaws.com/flask-app:latest
 
-     
-  
   deploy:
     name: Deploy App and ALB Ingress
-    needs: build-push-APi-Flask  # Optional: Run sequentially after job1
+    needs: build-push-APi-Flask
     runs-on: ubuntu-latest
-
     env:
       CLUSTER_NAME: test-eks
       AWS_REGION: us-east-1
@@ -75,14 +72,9 @@ jobs:
       - name: Verify Cluster Access
         run: |
           kubectl get nodes
-                
 
       - name: Deployment + Service + Ingress
         run: |
-         sed -i 's@CONTAINER_IMAGE@'"${{ vars.ECR_REGISTRY }}/flask-app:${{ github.sha }}"'@' kubernetes/deployment.yml
-         kubectl apply -f kubernetes/deployment.yml
-         kubectl apply -f kubernetes/ingress.yml
-
-
-
-  
+          sed -i 's@CONTAINER_IMAGE@650251701672.dkr.ecr.us-east-1.amazonaws.com/flask-app:${{ github.sha }}@' kubernetes/deployment.yml
+          kubectl apply -f kubernetes/deployment.yml
+          kubectl apply -f kubernetes/ingress.yml
