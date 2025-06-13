@@ -3,6 +3,7 @@ data "aws_eks_cluster_auth" "cluster" {
   name = var.cluster_id
 }
 
+
 # Kubernetes Provider
 provider "kubernetes" {
   host                   = var.cluster_endpoint
@@ -69,8 +70,8 @@ resource "helm_release" "loadbalancer_controller" {
     
 }
 
-# Create Namespace for grafana and prometheus
 
+# Create Namespace for grafana and prometheus
 resource "kubernetes_namespace" "monitoring" {
   metadata {
     name = "monitoring"
