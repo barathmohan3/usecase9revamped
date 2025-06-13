@@ -35,14 +35,3 @@ module "eks" {
   cluster_role_dependency = module.iam.eks_role_depends_on
   security_group_ids  = [module.security_group.eks_security_group_id]
 }
-
-module "helm" {
-  source = "./modules/helm"
-  cluster_id = module.eks.cluster_id
-  cluster_endpoint = module.eks.cluster_endpoint
-  cluster_certificate_authority_data = module.eks.cluster_certificate_authority_data
-  lbc_iam_depends_on = module.iam.lbc_iam_depends_on
-  lbc_iam_role_arn   = module.iam.lbc_iam_role_arn
-  vpc_id             = module.vpc.vpc_id
-  aws_region         = var.region
-}
