@@ -7,7 +7,7 @@ variable "vpc_cidr_block" {
 variable "name" {
   description = "Name to be used on VPC created"
   type        = string
-  default     = "demo" 
+  default     = "test" 
 }
 
 variable "region" {
