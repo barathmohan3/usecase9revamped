@@ -50,5 +50,5 @@ jobs:
           if [[ "${{ github.event.inputs.action }}" == "destroy" ]]; then
             terraform destroy -auto-approve
           else
-            terraform apply -refresh=false -auto-approve
+            terraform state rm -auto-approve
           fi
