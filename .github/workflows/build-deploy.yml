@@ -1,0 +1,88 @@
+name: Build and Push to ECR
+on:
+  push:
+    paths:
+      - 'Api-Flask/**'
+      - 'kubernetes/**'
+      - '.github/workflows/build-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-push-APi-Flask:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::650251701672:role/s3-github
+          role-session-name: github-assume
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR # login ecr
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker Image 
+        run: |
+          docker build -t ${{ vars.ECR_REGISTRY }}/flask-app:${{ github.sha }} ./Api-Flask
+          docker tag ${{ vars.ECR_REGISTRY }}/flask-app:${{ github.sha }} ${{ vars.ECR_REGISTRY }}/flask-app:latest
+
+      - name: Push Docker Image 
+        run: |
+          docker push ${{ vars.ECR_REGISTRY }}/flask-app:${{ github.sha }}
+          docker push ${{ vars.ECR_REGISTRY }}/flask-app:latest
+
+     
+  
+  deploy:
+    name: Deploy App and ALB Ingress
+    needs: build-push-APi-Flask  # Optional: Run sequentially after job1
+    runs-on: ubuntu-latest
+
+    env:
+      CLUSTER_NAME: test-eks
+      AWS_REGION: us-east-1
+      NAMESPACE: default
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+      
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::650251701672:role/s3-github
+          role-session-name: github-assume
+          aws-region: us-east-1
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region us-east-1 --name demo-eks
+
+      - name: Verify Cluster Access
+        run: |
+          kubectl get nodes
+                
+
+      - name: Deployment + Service + Ingress
+        run: |
+         sed -i 's@CONTAINER_IMAGE@'"${{ vars.ECR_REGISTRY }}/flask-app:${{ github.sha }}"'@' kubernetes/deployment.yml
+         kubectl apply -f kubernetes/deployment.yml
+         kubectl apply -f kubernetes/ingress.yml
+
+
+
+  
